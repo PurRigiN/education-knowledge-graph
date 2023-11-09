@@ -29,7 +29,6 @@
 </template>
 
 <script>
-import axios from 'axios' //引入axios
 import * as echarts from 'echarts' //引入echarts 5.4.2版本
 import EditorDialogue from './EditorDialogue.vue'
 export default {
@@ -82,308 +81,6 @@ export default {
     }
   },
   methods: {
-    get_search_res() {
-      //查询按钮点击事件(获取查询结果)
-      let that = this
-      let query_data = {
-        //查询请求数据
-        query: this.input,
-        depth: +this.value,
-      }
-      //获取echarts实例
-      let myChart = echarts.getInstanceByDom(document.getElementById('main'))
-      if (myChart == null) {
-        // 如果没有实例化则实例化
-        myChart = echarts.init(document.getElementById('main'))
-      }
-      let data = {} //查询结果数据
-      myChart.showLoading()
-      // 根据查询条件和查询深度发送查询请求
-      axios.post('http://172.20.106.58:3017/query', query_data).then(
-        (res) => {
-          // console.log(res.data)
-          data = res.data
-          if (data.error_code) {
-            //如果查询出错
-            alert(data.msg) //弹出错误信息
-            return
-          }
-          data.categories.forEach((item) => {
-            //设置节点样式
-            if (item.name == '个人' || item.name == '机构') {
-              //个人和机构节点样式
-              item.symbol = 'rect'
-              item.symbolSize = [60, 50]
-            } else if (/.*案件$/.test(item.name)) {
-              //案件节点样式
-              item.symbol = 'circle'
-              item.symbolSize = 70
-            }
-          })
-          let option = {
-            //设置echarts配置
-            title: {
-              text: '知识图谱',
-              top: 'bottom',
-              left: 'right',
-            },
-            legend: [
-              {
-                data: data.categories.map(function (a) {
-                  //设置图例
-                  return a.name
-                }),
-              },
-            ],
-            animationDurationUpdate: 2000,
-            animationEasingUpdate: 'quinticInOut',
-            series: [
-              {
-                // name: '知识图谱',
-                type: 'graph',
-                layout: 'force', //布局
-                data: data.nodes, //节点数据
-                links: data.links, //边数据
-                categories: data.categories, //节点类别
-                force: {
-                  // fixed: true,
-                  initLayout: 'circular',
-                  repulsion: 2000,
-                  gravity: 0.1,
-                  // layoutAnimation: false,
-                  draggable: true,
-                  friction: 0.1,
-                },
-                roam: true,
-                label: {
-                  show: true,
-                  // position: 'right',
-                  fontSize: 15,
-                  fontWeight: 'bold',
-                  formatter: '{b}',
-                },
-                lineStyle: {
-                  color: 'source',
-                  curveness: 0,
-                  opacity: 0.9,
-                  width: 2,
-                },
-                edgeSymbol: ['none', 'arrow'],
-                edgeSymbolSize: [10, 10],
-                edgeLabel: {
-                  show: true,
-                  fontSize: 12,
-                  formatter: (params) => {
-                    //设置边标签
-                    // console.log(params)
-                    let regex = /^case/
-                    // console.log(params)
-                    if (regex.test(params.data.source)) {
-                      //如果边的起点是案件节点
-                      return '被申请'
-                    } else {
-                      return '申请'
-                    }
-                  },
-                },
-                autoCurveness: true,
-                emphasis: {
-                  focus: 'adjacency',
-                  label: {
-                    fontSize: 20,
-                  },
-                  lineStyle: {
-                    width: 5,
-                  },
-                },
-              },
-            ],
-            tooltip: {
-              trigger: 'item',
-              enterable: true,
-              formatter: function (params) {
-                //设置提示框
-                let category_dic = {
-                  //节点类别字典
-                  0: '个人',
-                  1: '机构',
-                  2: '借贷案件',
-                  3: '工伤案件',
-                  4: '刑事案件',
-                }
-                let state_dic = {
-                  //案件状态字典
-                  0: '执行中',
-                  1: '已结案',
-                }
-                let sub_obj_dic = {
-                  //申请人/被申请人字典
-                  0: '申请人',
-                  1: '被申请人',
-                  2: '申请人/被申请人',
-                }
-                // console.log(params)
-                if (params.dataType == 'node') {
-                  //如果是节点
-                  if (params.data.category == 0 || params.data.category == 1) {
-                    //如果是个人或机构节点
-                    let content =
-                      //设置提示框内容
-                      `
-                                姓名：${params.data.name}
-                                <br/>
-                                类型：${category_dic[params.data.category] +
-                      '（' +
-                      sub_obj_dic[params.data.sub_obj] +
-                      '）'
-                      }
-                                <br/>
-                                身份证号：${params.data.id_card}
-                                <br/>
-                                单位名称：${params.data.company}
-                                <br/>
-                                社会信用代码：${params.data.social_credit_code}
-                                <br/>`
-                    return content
-                  } else {
-                    //如果是案件节点
-                    let abstract = params.data.abstract
-                    if (abstract.length > 20) {
-                      abstract = abstract.slice(0, 20) + '...'
-                    }
-                    let content =
-                      //设置提示框内容
-                      `
-                                案件名称：${params.data.name}
-                                <br/>
-                                类型：${category_dic[params.data.category]}
-                                <br/>
-                                简介：${abstract}
-                                <br/>
-                                时间：${params.data.time}
-                                <br/>
-                                状态：${state_dic[params.data.state]}
-                                <br/>`
-                    return content
-                  }
-                } else {
-                  //如果是边
-                  return
-                }
-              },
-            },
-          }
-          myChart.hideLoading()
-          myChart.setOption(option)
-          that.isGraphShow = true
-        },
-        (err) => {
-          console.log(err)
-        }
-      )
-      // 监听点击事件
-      let click_set = new Set() // 用于记录点击过的结点
-      myChart.off('click') //取消之前的监听事件
-      myChart.on('click', function (params) {
-        if (params.dataType == 'edge') {
-          //如果点击的是边 则不做任何操作
-          return
-        }
-        let query_data = {
-          //设置查询参数
-          id: params.data.id,
-        }
-        // 根据点击的结点id查询与之相关的结点和边
-        axios.post('http://172.20.106.58:3017/id', query_data).then(
-          (res) => {
-            if (click_set.has(params.data.id)) {
-              //如果点击过该结点 则删除与该结点相关并且与其他结点无关的边和结点
-              res.data.nodes.forEach((node) => {
-                //删除与该结点相关的边
-                for (let link of data.links) {
-                  if (
-                    (link.source == node.id && link.target == params.data.id) ||
-                    (link.target == node.id && link.source == params.data.id)
-                  ) {
-                    let index = data.links.indexOf(link)
-                    if (index > -1) {
-                      data.links.splice(index, 1)
-                    }
-                  }
-                }
-              })
-              res.data.nodes.forEach((node) => {
-                //删除与该结点相关的结点 且不与其他结点相关的结点
-                let delete_flag = true //用于判断是否删除该结点
-                data.links.forEach((link) => {
-                  //遍历所有边
-                  if (link.source == node.id || link.target == node.id) {
-                    //如果该结点与其他结点有关联 则不删除
-                    delete_flag = false
-                  }
-                })
-                if (delete_flag && node.id != params.data.id) {
-                  //如果该结点与其他结点无关联且不是点击的结点 则删除
-                  data.nodes = data.nodes.filter((obj) => obj.id !== node.id)
-                }
-              })
-              myChart.setOption({
-                series: [
-                  {
-                    data: data.nodes,
-                    links: data.links,
-                  },
-                ],
-              })
-              // 完成删除后，将该结点从click_set中删除
-              click_set.delete(params.data.id)
-              return
-            }
-            // 如果没有点击过该结点 则将与该结点相关的结点和边添加到data中
-            res.data.nodes.forEach((node) => {
-              //添加结点
-              if (data.nodes.findIndex((item) => item.id == node.id) == -1) {
-                data.nodes.push(node)
-              }
-            })
-
-            if (!data.hasOwnProperty('links')) {
-              data.links = []
-            }
-
-            res.data.links.forEach((link) => {
-              //添加边
-              if (
-                JSON.stringify(data.links).indexOf(JSON.stringify(link)) == -1
-              ) {
-                data.links.push(link)
-              }
-            })
-            // 将该结点添加到click_set中
-            click_set.add(params.data.id)
-            myChart.setOption({
-              series: [
-                {
-                  data: data.nodes,
-                  links: data.links,
-                },
-              ],
-            })
-          },
-          (err) => {
-            console.log(err)
-          }
-        )
-      })
-      myChart.on('contextmenu', function (params) {
-        params.event.event.preventDefault() // 阻止默认的右键菜单
-        if (params.dataType == 'edge') {
-          //如果点击的是边 则不做任何操作
-          return
-        }
-        that.openDialog(params)
-      })
-    },
     openDialog(params) { // 右键监听事件
       this.graphData = params.data
       let nodeTypeMap = {
@@ -429,7 +126,7 @@ export default {
           //设置查询参数
           id: params.data.id,
         }
-        axios.post('http://172.20.106.58:3018/getNeighbour', query_data).then(
+        this.$axios.post('api/getNeighbour', query_data).then(
           (res) => {
             // console.log(res.data)
             let oldPreCoursesId = res.data.links.filter(link => link.source === params.data.id && link.type === 'precede').map(link => link.target)
@@ -491,7 +188,7 @@ export default {
             //设置查询参数
             id: params.data.id,
           }
-          axios.post('http://172.20.106.58:3018/getNeighbour', query_data).then(
+          this.$axios.post('api/getNeighbour', query_data).then(
             (res) => {
               // console.log(res.data)
               let oldPreKnowledgeId = res.data.links.filter(link => link.source === params.data.id && link.type === 'precede').map(link => link.target)
@@ -726,7 +423,7 @@ export default {
       }
       // console.log(query_data)
       // 根据点击的结点id查询与之相关的结点和边
-      axios.post('http://172.20.106.58:3018/getNeighbour', query_data).then(
+      this.$axios.post('api/getNeighbour', query_data).then(
         (res) => {
           // console.log(res.data)
           if (this.click_set.has(params.data.id)) {
@@ -824,7 +521,7 @@ export default {
       // console.log(query_data)
       let data = {}
       // 根据查询条件和查询深度发送查询请求
-      axios.post('http://172.20.106.58:3018/search', query_data).then((res) => {
+      this.$axios.post('api/search', query_data).then((res) => {
         this.$store.commit('changeFrom', 'search')
         // console.log(res.data)
         data = res.data

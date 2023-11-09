@@ -1,9 +1,11 @@
 // 路由
-
 import Vue from 'vue'
-
 //引入VueRouter
 import VueRouter from 'vue-router'
+
+import Layout from '@/components/Layout.vue'
+import Login from '@/components/Login.vue'
+import Register from '@/components/Register.vue'
 
 const includPush = VueRouter.prototype.push
 VueRouter.prototype.push = function push(location) {
@@ -16,11 +18,24 @@ Vue.use(VueRouter);
 const router = new VueRouter({
   routes: [
     {
-      path: '',
-      // component: Index
-      // component: resolve => require(['@/pages/Dialogue'],resolve)
-      component: resolve => require(['@/pages/JYKG'],resolve)
+      path: '/',
+      redirect: '/login'
     },
+    {
+      path: '/login',
+      name: 'Login',
+      component: Login
+    },
+    {
+      path: '/register',
+      name: 'Register',
+      component: Register
+    },
+    {
+      path: '/layout',
+      name: 'Layout',
+      component: Layout
+    }
   ]
 })
 

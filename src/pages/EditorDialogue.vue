@@ -59,7 +59,6 @@
 </template>
 
 <script>
-import axios from 'axios' //引入axios
 export default {
   name: 'EditorDialogue',
   props: {
@@ -151,7 +150,7 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        axios.post('http://172.20.106.58:3018/delete', query).then((res) => {
+        this.$axios.post('/api/delete', query).then((res) => {
           // console.log(res)
           if (res.data == 1) {
             this.$message({
@@ -162,9 +161,8 @@ export default {
           this.$store.commit('changeIsNodeChange', 'true')
           this.$emit('update:dialogFormVisible', false)
           let data = {}
-          const BaseURL = 'http://172.20.106.58:3018/'
           if (that.$store.state.from === 'all') { // 删除结点后，重新渲染图
-            axios.post(BaseURL + 'api/getAll', {}).then((res) => {
+            this.$axios.post('/api/api/getAll', {}).then((res) => {
               // console.log(res.data)
               data = res.data
               data.categories.forEach((item) => {
@@ -190,7 +188,7 @@ export default {
               this.$store.commit('changeGraphRenderData', data)
             })
           } else if (that.$store.state.from === 'course') {
-            axios.post(BaseURL + 'getKnowledge', {
+            this.$axios.post('/api/getKnowledge', {
               id: that.$store.state.courseId,
             }).then((res) => {
               // console.log(res.data)
@@ -227,9 +225,8 @@ export default {
       });
     },
     addNode() {
-      const BaseURL = 'http://172.20.106.58:3018/'
       if (this.graphData.nodeType === 'course') {
-        axios.post(BaseURL + 'addCourse', this.form).then((res) => {
+        this.$axios.post('/api/addCourse', this.form).then((res) => {
           if (res.data == 1) {
             this.$message({
               type: 'success',
@@ -242,7 +239,7 @@ export default {
         })
       } else {
         // console.log(this.form)
-        axios.post(BaseURL + 'addKnowledge', this.form).then((res) => {
+        this.$axios.post('/api/addKnowledge', this.form).then((res) => {
           if (res.data == 1) {
             this.$message({
               type: 'success',
@@ -257,10 +254,9 @@ export default {
       }
     },
     updateNode() {
-      const BaseURL = 'http://172.20.106.58:3018/'
       if (this.graphData.nodeType === 'course') {
         console.log(this.form)
-        axios.post(BaseURL + 'updateCourse', this.form).then((res) => {
+        this.$axios.post('/api/updateCourse', this.form).then((res) => {
           if (res.data == 1) {
             this.$message({
               type: 'success',
@@ -272,7 +268,7 @@ export default {
           console.log(err)
         })
       } else {
-        axios.post(BaseURL + 'updateKnowledge', this.form).then((res) => {
+        this.$axios.post('/api/updateKnowledge', this.form).then((res) => {
           if (res.data == 1) {
             this.$message({
               type: 'success',

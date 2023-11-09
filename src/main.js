@@ -10,9 +10,13 @@ import store from './store'
 
 // 引入路由
 import router from './router';
+import axios from 'axios'
+import moment from 'moment'
+import 'moment/locale/zh-cn'
+moment.locale('zh-cn')
 
 Vue.config.productionTip = false
-
+Vue.prototype.$axios = axios
 Vue.use(ElementUI);
 
 new Vue({
