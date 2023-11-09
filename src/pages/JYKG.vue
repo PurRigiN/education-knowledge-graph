@@ -1,7 +1,7 @@
 <template>
   <el-card shadow="always" style="width: 99%; height: 99%">
     <EditorDialogue :graphData="graphData" :dialogFormVisible.sync="dialogFormVisible"></EditorDialogue>
-    <el-row v-if="$store.state.from === 'all'" :gutter="20">
+    <el-row v-if="$store.state.from === 'all' || this.$store.state.from === 'search'" :gutter="20">
       <el-col :span="3"><el-button type="primary">查询条件<i class="el-icon-caret-right"></i></el-button></el-col>
       <el-col :span="6">
         <el-input placeholder="请输入查询条件" v-model="input">
@@ -13,8 +13,7 @@
         <el-select v-model="value" style="width: 250px" placeholder="请选择">
           <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value">
           </el-option> </el-select></el-col>
-      <el-col :span="6"><el-button type="primary" icon="el-icon-search"
-          @click="get_search_res()">确认查询</el-button></el-col>
+      <el-col :span="6"><el-button type="primary" icon="el-icon-search" @click="search()">确认查询</el-button></el-col>
     </el-row>
     <el-row v-if="isShowAdd">
       <el-col :span="22">
@@ -430,7 +429,7 @@ export default {
           //设置查询参数
           id: params.data.id,
         }
-        axios.post('http://172.20.106.58:3018/search', query_data).then(
+        axios.post('http://172.20.106.58:3018/getNeighbour', query_data).then(
           (res) => {
             // console.log(res.data)
             let oldPreCoursesId = res.data.links.filter(link => link.source === params.data.id && link.type === 'precede').map(link => link.target)
@@ -492,7 +491,7 @@ export default {
             //设置查询参数
             id: params.data.id,
           }
-          axios.post('http://172.20.106.58:3018/search', query_data).then(
+          axios.post('http://172.20.106.58:3018/getNeighbour', query_data).then(
             (res) => {
               // console.log(res.data)
               let oldPreKnowledgeId = res.data.links.filter(link => link.source === params.data.id && link.type === 'precede').map(link => link.target)
@@ -727,9 +726,9 @@ export default {
       }
       // console.log(query_data)
       // 根据点击的结点id查询与之相关的结点和边
-      axios.post('http://172.20.106.58:3018/search', query_data).then(
+      axios.post('http://172.20.106.58:3018/getNeighbour', query_data).then(
         (res) => {
-          console.log(res.data)
+          // console.log(res.data)
           if (this.click_set.has(params.data.id)) {
             //如果点击过该结点 则删除与该结点相关并且与其他结点无关的边和结点
             res.data.nodes.forEach((node) => {
@@ -816,15 +815,40 @@ export default {
         }
       )
     },
-    search(){
+    search() {
       let query_data = {
         //查询请求数据
-        query: this.input,
+        name: this.input,
         depth: +this.value,
       }
+      // console.log(query_data)
+      let data = {}
       // 根据查询条件和查询深度发送查询请求
-      axios.post('http://172.20.106.58:3017/query', query_data).then((res)=>{
+      axios.post('http://172.20.106.58:3018/search', query_data).then((res) => {
         this.$store.commit('changeFrom', 'search')
+        // console.log(res.data)
+        data = res.data
+        data.categories.forEach((item) => {
+          //设置节点样式
+          if (item.name == '课程') {
+            //课程结点样式
+            item.symbol = 'circle'
+            item.symbolSize = 70
+          } else if (item.name == '知识点') {
+            //知识点结点样式
+            item.symbol = 'circle'
+            item.symbolSize = [70, 50]
+          }
+        })
+        data.links.forEach((item) => {
+          //设置边的样式
+          if (item.type === 'relevant') {
+            item.symbol = ['none', 'none']
+          } else {
+            item.symbol = ['none', 'arrow']
+          }
+        })
+        this.$store.commit('changeGraphRenderData', data)
       })
     }
   },
