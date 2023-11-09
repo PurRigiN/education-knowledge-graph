@@ -32,7 +32,6 @@
 </template>
 
 <script>
-import axios from 'axios' //引入axios
 import EditorDialogue from './EditorDialogue.vue'
 export default {
     name: 'CourseTable',
@@ -61,7 +60,7 @@ export default {
     },
     methods: {
         getAllCourses() {
-            axios.post('http://172.20.106.58:3018/getCourses').then((res) => {
+            this.$axios.post('/api/getCourses').then((res) => {
                 let courses = res.data['nodes']
                 this.$set(this, 'tableData', courses)
                 // this.tableData = courses
@@ -78,7 +77,7 @@ export default {
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(() => {
-                axios.post('http://172.20.106.58:3018/delete', query).then((res) => {
+                this.$axios.post('/api/delete', query).then((res) => {
                     // console.log(res)
                     if (res.data == 1) {
                         this.$message({
@@ -102,7 +101,7 @@ export default {
             this.$store.commit('changeNodeType', 'knowledge')
             this.$store.commit('changeCourseId', row.id)
             let data = {}
-            axios.post('http://172.20.106.58:3018/getKnowledge', {
+            this.$axios.post('/api/getKnowledge', {
                 id: row.id,
             }).then((res) => {
                 // console.log(res.data)
@@ -134,7 +133,7 @@ export default {
         showAll() {
             this.$store.commit('changeFrom', 'all')
             let data = {}
-            axios.post('http://172.20.106.58:3018/api/getAll', {}).then((res) => {
+            this.$axios.post('/api/api/getAll', {}).then((res) => {
                 // console.log(res.data)
                 data = res.data
                 data.categories.forEach((item) => {

@@ -10,7 +10,7 @@
         <course-table></course-table>
       </el-aside>
       <el-main>
-        <router-view></router-view>
+        <JYKG></JYKG>
       </el-main>
     </div>
   </el-container>
@@ -19,8 +19,9 @@
 <script>
 import secNavbar from '../pages/pubChildren/secNavbar.vue'
 import CourseTable from '../pages/CourseTable.vue'
+import JYKG from '../pages/JYKG.vue'
 export default {
-  components: { secNavbar, CourseTable },
+  components: { secNavbar, CourseTable, JYKG },
   name: 'Layout',
 }
 </script>

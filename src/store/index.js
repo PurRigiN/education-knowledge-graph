@@ -34,7 +34,9 @@ const state = {
   graphRenderData: {
     nodes: [],
     links: [],
-    categories: []
+    categories: [],
+    majors: [],
+    colleges: []
   },
   courseId: '',
   isNodeChange: false

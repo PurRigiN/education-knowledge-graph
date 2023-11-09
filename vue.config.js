@@ -1,14 +1,14 @@
 module.exports = {
     publicPath: './',
-    // devServer: {
-    //     proxy: {
-    //         '/llama': {
-    //             target: 'http://202.202.5.140:3000',
-    //             changOrigin: true,
-    //             pathRewrite: {
-    //                 '^/llama': '/'
-    //             }
-    //         },
-    //     },
-    // }
+    devServer: {
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8080/',
+                changeOrigin: true,
+                pathRewrite: {
+                    '^/api': '/'
+                }
+            }
+        }
+    }
 };
