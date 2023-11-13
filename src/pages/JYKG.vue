@@ -170,7 +170,7 @@ export default {
                 // 标记为 editNode
                 this.graphData.label = 'editNode'
                 this.graphData.nodeType = 'course'
-                // console.log(this.graphData);
+                console.log(this.graphData);
                 this.dialogFormVisible = true
               },
               (err) => {
@@ -182,6 +182,18 @@ export default {
             console.log(err)
           }
         )
+        this.graphData.cand_major = this.$store.state.graphRenderData.majors.map(major => {
+          return {
+            value: major,
+            label: major
+          }
+        })
+        this.graphData.cand_college = this.$store.state.graphRenderData.colleges.map(college => {
+          return {
+            value: college,
+            label: college
+          }
+        })
         // 此处放置不依赖于异步数据的代码
       } else if (nodeType === 'knowledge') {
         this.$store.commit('changeNodeType', 'knowledge')
