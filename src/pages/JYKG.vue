@@ -74,109 +74,127 @@ export default {
         cand_rel: [],
         course_id: '',
         nodeType: 'knowledge',
-        label: 'addNode'// 用于区分是新增结点还是编辑结点
+        label: 'addNode', // 用于区分是新增结点还是编辑结点
       },
       myChart: null,
-      click_set: new Set()
+      click_set: new Set(),
     }
   },
   methods: {
-    openDialog(params) { // 右键监听事件
+    openDialog(params) {
+      // 右键监听事件
       this.graphData = params.data
+      // console.log(params.data)
       let nodeTypeMap = {
         0: 'course',
-        1: 'knowledge'
+        1: 'knowledge',
       }
       let nodeType = nodeTypeMap[params.data.category]
       // console.log(params.data)
       if (nodeType === 'course') {
         this.$store.commit('changeNodeType', 'course')
-        this.dialogFormVisible = true
-        // console.log(this.$store.state.graphRenderData)
-        let otherAllCourses = this.$store.state.graphRenderData.nodes.filter(node => node.category === 0 && node.id !== params.data.id)
-        let candCourses = otherAllCourses.map(course => {
-          return {
-            value: course.id,
-            label: course.name
-          }
-        })
-        this.graphData.cand_pre = candCourses
-        this.graphData.cand_next = candCourses
-        this.graphData.cand_rel = candCourses
-        this.graphData.cand_major = this.$store.state.graphRenderData.majors.map(major => {
-          return {
-            value: major,
-            label: major
-          }
-        })
-        this.graphData.cand_college = this.$store.state.graphRenderData.colleges.map(college => {
-          return {
-            value: college,
-            label: college
-          }
-        })
-        // console.log(candMajor)
-
-        // console.log(this.graphData)
-        // console.log(otherAllCourses)
-        let oldMajor = params.data.major
-        let oldCollege = params.data.college
-
-        let query_data = {
-          //设置查询参数
+        let query = {
           id: params.data.id,
         }
-        this.$axios.post('api/getNeighbour', query_data).then(
+
+        // 第一个异步请求：获取 otherAllCourses
+        this.$axios.post('/api/getOthers', query).then(
           (res) => {
-            // console.log(res.data)
-            let oldPreCoursesId = res.data.links.filter(link => link.source === params.data.id && link.type === 'precede').map(link => link.target)
-            let oldNextCoursesId = res.data.links.filter(link => link.target === params.data.id && link.type === 'precede').map(link => link.source)
-            let oldRelCoursesId1 = res.data.links.filter(link => link.source === params.data.id && link.type === 'relevant').map(link => link.target)
-            let oldRelCoursesId2 = res.data.links.filter(link => link.target === params.data.id && link.type === 'relevant').map(link => link.source)
-            let oldRelCoursesId = [...oldRelCoursesId1, ...oldRelCoursesId2]
+            let otherAllCourses = res.data.courses
+            let candCourses = otherAllCourses.map((course) => {
+              return {
+                value: course.id,
+                label: course.name,
+              }
+            })
 
-            // console.log(oldPreCoursesId)
-            // console.log(oldNextCoursesId)
-            // console.log(oldRelCoursesId)
+            // 更新 graphData
+            this.graphData.cand_pre = candCourses
+            this.graphData.cand_next = candCourses
+            this.graphData.cand_rel = candCourses
 
-            let oldPreCourses = res.data.nodes.filter(node => oldPreCoursesId.includes(node.id)).map(node =>
-              node.id)
-            // console.log(oldPreCourses)
-            let oldNextCourses = res.data.nodes.filter(node => oldNextCoursesId.includes(node.id)).map(node =>
-              node.id,
+            // 其他依赖于 otherAllCourses 的代码
+
+            // 第二个异步请求：获取与课程相关的信息
+            let query_data = {
+              id: params.data.id,
+            }
+
+            this.$axios.post('api/getNeighbour', query_data).then(
+              (res) => {
+                // 处理第二个请求的结果
+                let oldPreCoursesId = res.data.links
+                  .filter(
+                    (link) =>
+                      link.source === params.data.id && link.type === 'precede'
+                  )
+                  .map((link) => link.target)
+                let oldNextCoursesId = res.data.links
+                  .filter(
+                    (link) =>
+                      link.target === params.data.id && link.type === 'precede'
+                  )
+                  .map((link) => link.source)
+                let oldRelCoursesId1 = res.data.links
+                  .filter(
+                    (link) =>
+                      link.source === params.data.id && link.type === 'relevant'
+                  )
+                  .map((link) => link.target)
+                let oldRelCoursesId2 = res.data.links
+                  .filter(
+                    (link) =>
+                      link.target === params.data.id && link.type === 'relevant'
+                  )
+                  .map((link) => link.source)
+                let oldRelCoursesId = [...oldRelCoursesId1, ...oldRelCoursesId2]
+
+                let oldPreCourses = res.data.nodes
+                  .filter((node) => oldPreCoursesId.includes(node.id))
+                  .map((node) => node.id)
+                let oldNextCourses = res.data.nodes
+                  .filter((node) => oldNextCoursesId.includes(node.id))
+                  .map((node) => node.id)
+                let oldRelCourses = res.data.nodes
+                  .filter((node) => oldRelCoursesId.includes(node.id))
+                  .map((node) => node.id)
+
+                this.graphData.oldPreCourses = oldPreCourses
+                this.graphData.oldNextCourses = oldNextCourses
+                this.graphData.oldRelCourses = oldRelCourses
+
+                // 更新 graphData 的其他部分
+                this.graphData.oldMajor = params.data.major
+                this.graphData.oldCollege = params.data.college
+
+                // 标记为 editNode
+                this.graphData.label = 'editNode'
+                this.graphData.nodeType = 'course'
+                // console.log(this.graphData);
+                this.dialogFormVisible = true
+              },
+              (err) => {
+                console.log(err)
+              }
             )
-            let oldRelCourses = res.data.nodes.filter(node => oldRelCoursesId.includes(node.id)).map(node => node.id,
-            )
-
-            this.graphData.oldPreCourses = oldPreCourses
-            this.graphData.oldNextCourses = oldNextCourses
-            this.graphData.oldRelCourses = oldRelCourses
-
-            this.graphData.label = 'editNode'
-            this.graphData.nodeType = 'course'
           },
           (err) => {
             console.log(err)
           }
         )
-
-
-        this.graphData.oldMajor = oldMajor
-        this.graphData.oldCollege = oldCollege
-        // this.graphData.oldPreCourses = oldPreCourses
-        // this.graphData.oldNextCourses = oldNextCourses
-        // // console.log(oldNextCourses)
-        // this.graphData.oldRelCourses = oldRelCourses
-
+        // 此处放置不依赖于异步数据的代码
       } else if (nodeType === 'knowledge') {
         this.$store.commit('changeNodeType', 'knowledge')
         if (this.$store.state.from === 'course') {
-          this.dialogFormVisible = true
-          let otherAllKnowledge = this.$store.state.graphRenderData.nodes.filter(node => node.category === 1 && node.id !== params.data.id)
-          let candKnowledge = otherAllKnowledge.map(knowledge => {
+          // 从课程跳转过来才显示编辑对话框
+          let otherAllKnowledge =
+            this.$store.state.graphRenderData.nodes.filter(
+              (node) => node.category === 1 && node.id !== params.data.id
+            )
+          let candKnowledge = otherAllKnowledge.map((knowledge) => {
             return {
               value: knowledge.id,
-              label: knowledge.name
+              label: knowledge.name,
             }
           })
           this.graphData.cand_pre = candKnowledge
@@ -191,24 +209,49 @@ export default {
           this.$axios.post('api/getNeighbour', query_data).then(
             (res) => {
               // console.log(res.data)
-              let oldPreKnowledgeId = res.data.links.filter(link => link.source === params.data.id && link.type === 'precede').map(link => link.target)
-              let oldNextKnowledgeId = res.data.links.filter(link => link.target === params.data.id && link.type === 'precede').map(link => link.source)
-              let oldRelKnowledgeId1 = res.data.links.filter(link => link.source === params.data.id && link.type === 'relevant').map(link => link.target)
-              let oldRelKnowledgeId2 = res.data.links.filter(link => link.target === params.data.id && link.type === 'relevant').map(link => link.source)
-              let oldRelKnowledgeId = [...oldRelKnowledgeId1, ...oldRelKnowledgeId2]
+              let oldPreKnowledgeId = res.data.links
+                .filter(
+                  (link) =>
+                    link.source === params.data.id && link.type === 'precede'
+                )
+                .map((link) => link.target)
+              let oldNextKnowledgeId = res.data.links
+                .filter(
+                  (link) =>
+                    link.target === params.data.id && link.type === 'precede'
+                )
+                .map((link) => link.source)
+              let oldRelKnowledgeId1 = res.data.links
+                .filter(
+                  (link) =>
+                    link.source === params.data.id && link.type === 'relevant'
+                )
+                .map((link) => link.target)
+              let oldRelKnowledgeId2 = res.data.links
+                .filter(
+                  (link) =>
+                    link.target === params.data.id && link.type === 'relevant'
+                )
+                .map((link) => link.source)
+              let oldRelKnowledgeId = [
+                ...oldRelKnowledgeId1,
+                ...oldRelKnowledgeId2,
+              ]
 
               // console.log(oldPreKnowledgeId)
               // console.log(oldNextKnowledgeId)
               // console.log(oldRelKnowledgeId)
 
-              let oldPreKnowledges = res.data.nodes.filter(node => oldPreKnowledgeId.includes(node.id)).map(node =>
-                node.id)
+              let oldPreKnowledges = res.data.nodes
+                .filter((node) => oldPreKnowledgeId.includes(node.id))
+                .map((node) => node.id)
               // console.log(oldPreKnowledge)
-              let oldNextKnowledges = res.data.nodes.filter(node => oldNextKnowledgeId.includes(node.id)).map(node =>
-                node.id,
-              )
-              let oldRelKnowledges = res.data.nodes.filter(node => oldRelKnowledgeId.includes(node.id)).map(node => node.id,
-              )
+              let oldNextKnowledges = res.data.nodes
+                .filter((node) => oldNextKnowledgeId.includes(node.id))
+                .map((node) => node.id)
+              let oldRelKnowledges = res.data.nodes
+                .filter((node) => oldRelKnowledgeId.includes(node.id))
+                .map((node) => node.id)
 
               this.graphData.oldPreKnowledges = oldPreKnowledges
               this.graphData.oldNextKnowledges = oldNextKnowledges
@@ -216,6 +259,8 @@ export default {
 
               this.graphData.label = 'editNode'
               this.graphData.nodeType = 'knowledge'
+
+              this.dialogFormVisible = true
             },
             (err) => {
               console.log(err)
@@ -232,9 +277,9 @@ export default {
       let knowledgeData = this.$store.state.graphRenderData
       // console.log(knowledgeData)
       knowledgeData.nodes.forEach((item) => {
-        this.newNodeData.cand_pre.push({ 'value': item.id, 'label': item.name })
-        this.newNodeData.cand_next.push({ 'value': item.id, 'label': item.name })
-        this.newNodeData.cand_rel.push({ 'value': item.id, 'label': item.name })
+        this.newNodeData.cand_pre.push({ value: item.id, label: item.name })
+        this.newNodeData.cand_next.push({ value: item.id, label: item.name })
+        this.newNodeData.cand_rel.push({ value: item.id, label: item.name })
       })
       this.newNodeData.course_id = this.$store.state.courseId
       this.graphData = this.newNodeData
@@ -247,7 +292,7 @@ export default {
         cand_rel: [],
         course_id: '',
         nodeType: 'knowledge',
-        label: 'addNode'// 用于区分是新增结点还是编辑结点
+        label: 'addNode', // 用于区分是新增结点还是编辑结点
       }
     },
     renderGraph() {
@@ -328,8 +373,7 @@ export default {
                   return '前继'
                 } else if (params.data.type === 'relevant') {
                   return '相关'
-                }
-                else if (params.data.type === 'include') {
+                } else if (params.data.type === 'include') {
                   return '包含'
                 }
               },
@@ -362,21 +406,21 @@ export default {
                 let content =
                   //设置提示框内容
                   `
-                                课程名称：${params.data.name}
-                                <br/>
-                                课程学院：${params.data.college}
-                                <br/>
-                                课程专业：${params.data.major}
-                                `
+                                  课程名称：${params.data.name}
+                                  <br/>
+                                  课程学院：${params.data.college}
+                                  <br/>
+                                  课程专业：${params.data.major}
+                                  `
                 return content
               } else if (category_dict[params.data.category] === '知识点') {
                 let content =
                   //设置提示框内容
                   `
-                                知识点名称：${params.data.name}
-                                <br/>
-                                知识点描述：${params.data.text}
-                                `
+                                  知识点名称：${params.data.name}
+                                  <br/>
+                                  知识点描述：${params.data.text}
+                                  `
                 return content
               }
             } else {
@@ -387,10 +431,10 @@ export default {
         },
       }
       setTimeout(() => {
-        // setOption前隐藏loading事件 
+        // setOption前隐藏loading事件
         this.myChart.hideLoading()
         this.myChart.setOption(option)
-      }, 500);
+      }, 500)
       // this.myChart.hideLoading()
       // this.myChart.setOption(option)
       that.isGraphShow = true
@@ -399,6 +443,7 @@ export default {
       this.myChart.on('click', (params) => {
         this.graphClick(params, data)
       })
+      this.myChart.off('contextmenu')
       this.myChart.on('contextmenu', (params) => {
         params.event.event.preventDefault() // 阻止默认的右键菜单
         // console.log(params)
@@ -547,22 +592,27 @@ export default {
         })
         this.$store.commit('changeGraphRenderData', data)
       })
-    }
+    },
   },
   computed: {
     isShowAdd() {
       // 是否显示新增按钮 仅在从 课程 跳转到知识图谱时显示
-      return this.$store.state.from === 'course' && this.isGraphShow && this.$store.state.nodeType === 'knowledge'
+      return (
+        this.$store.state.from === 'course' &&
+        this.isGraphShow &&
+        this.$store.state.nodeType === 'knowledge'
+      )
     },
     // graphRenderData() {
     //   return this.$store.state.graphRenderData
     // }
   },
   watch: {
-    '$store.state.graphRenderData'() { // 监听Vuex知识图谱数据的变化
+    '$store.state.graphRenderData'() {
+      // 监听Vuex知识图谱数据的变化
       this.renderGraph()
     },
-  }
+  },
 }
 </script>
 

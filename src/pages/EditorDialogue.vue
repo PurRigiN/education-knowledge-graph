@@ -255,7 +255,7 @@ export default {
     },
     updateNode() {
       if (this.graphData.nodeType === 'course') {
-        console.log(this.form)
+        // console.log(this.form)
         this.$axios.post('/api/updateCourse', this.form).then((res) => {
           if (res.data == 1) {
             this.$message({
@@ -301,20 +301,18 @@ export default {
         this.optionsMajor = this.graphData.cand_major
         this.optionsCollege = this.graphData.cand_college
 
-        setTimeout(() => {
-          if (this.graphData.nodeType === 'course') {
-            this.valueRel = this.graphData.oldRelCourses
-            this.valuePre = this.graphData.oldPreCourses
-            this.valueNext = this.graphData.oldNextCourses
-            this.valueMajor = this.graphData.oldMajor
-            this.valueCollege = this.graphData.oldCollege
-          } else if (this.graphData.nodeType === 'knowledge') {
-            this.valueRel = this.graphData.oldRelKnowledges
-            this.valuePre = this.graphData.oldPreKnowledges
-            this.valueNext = this.graphData.oldNextKnowledges
-            this.text = this.graphData.text
-          }
-        }, 100)
+        if (this.graphData.nodeType === 'course') {
+          this.valueRel = this.graphData.oldRelCourses
+          this.valuePre = this.graphData.oldPreCourses
+          this.valueNext = this.graphData.oldNextCourses
+          this.valueMajor = this.graphData.oldMajor
+          this.valueCollege = this.graphData.oldCollege
+        } else if (this.graphData.nodeType === 'knowledge') {
+          this.valueRel = this.graphData.oldRelKnowledges
+          this.valuePre = this.graphData.oldPreKnowledges
+          this.valueNext = this.graphData.oldNextKnowledges
+          this.text = this.graphData.text
+        }
 
       } else {
         // console.log('对话框关闭')
