@@ -1,6 +1,9 @@
 <template>
   <el-card shadow="always" style="width: 99%; height: 99%">
     <EditorDialogue :graphData="graphData" :dialogFormVisible.sync="dialogFormVisible"></EditorDialogue>
+    <EditRelationDialogue :in_node1="selectedNode1" :in_node2="selectedNode2"
+      :editRelationFormVisible.sync="editRelationFormVisible">
+    </EditRelationDialogue>
     <el-row v-if="$store.state.from === 'all' || this.$store.state.from === 'search'" :gutter="20">
       <el-col :span="3"><el-button type="primary">查询条件<i class="el-icon-caret-right"></i></el-button></el-col>
       <el-col :span="6">
@@ -31,9 +34,11 @@
 <script>
 import * as echarts from 'echarts' //引入echarts 5.4.2版本
 import EditorDialogue from './EditorDialogue.vue'
+import EditRelationDialogue from './EditRelationDialogue.vue'
 export default {
   components: {
     EditorDialogue,
+    EditRelationDialogue,
   },
   name: 'JYKG',
   data() {
@@ -64,6 +69,20 @@ export default {
       ],
       value: '', //查询深度
       dialogFormVisible: false, //编辑对话框是否可见
+      editRelationFormVisible: false, //编辑关系对话框是否可见
+      selectedNodes: [], //选中的结点
+      selectedNode1: {
+        category: 0,
+        id: '',
+        name: '',
+        text: '',
+      }, //选中的结点1
+      selectedNode2: {
+        category: 0,
+        id: '',
+        name: '',
+        text: '',
+      }, //选中的结点2
       graphData: {},
       isGraphShow: false,
       newNodeData: {
@@ -400,6 +419,13 @@ export default {
                 width: 5,
               },
             },
+            selectedMode: 'multiple',
+            select: {
+              itemStyle: {
+                borderColor: '#fac858',
+                borderWidth: 4,
+              },
+            },
           },
         ],
         tooltip: {
@@ -455,6 +481,56 @@ export default {
       this.myChart.on('dblclick', (params) => {
         this.graphDoubleClick(params, data)
       })
+      this.myChart.off('click') //取消之前的监听事件
+      // 因为边的选中在echart中有bug，不使用'selectedchange'函数
+      // 使用'click'函数来实现
+      this.myChart.on('click', { dataType: 'node' }, function (params) {
+        // 如果selectedNodes为空，则是新点击一个节点
+        if (that.selectedNodes.length == 0) {
+
+          that.selectedNodes.push(params.dataIndex)
+          that.selectedNode1 = data.nodes[params.dataIndex]
+          // 选中
+          that.myChart.dispatchAction({
+            type: 'select',
+            dataIndex: params.dataIndex,
+          });
+          return
+        } else {
+          // 如果selectedNodes不为空，则是点击了第二个节点
+          // 判断和第一个节点是否相同
+          if (params.dataIndex == that.selectedNodes[0]) {
+            // 如果相同
+            // 取消选择
+            that.myChart.dispatchAction({
+              type: 'unselect',
+              dataIndex: params.dataIndex,
+            });
+            // 清空selectedNodes和selectedNode1
+            that.selectedNodes = [];
+            that.selectedNode1 = {
+              category: 0,
+              id: '',
+              name: '',
+              text: '',
+            };
+          } else {
+            // 不相同，则说明是另一个点，将其加入selectedNodes
+            that.selectedNodes.push(params.dataIndex)
+            that.selectedNode2 = data.nodes[params.dataIndex]
+            // 选中
+            that.myChart.dispatchAction({
+              type: 'select',
+              dataIndex: that.selectedNodes,
+            });
+            // 开启编辑关系对话框
+            that.editRelationFormVisible = true;
+
+            // selectedNodes, selectedNode1, selectedNodes2
+            // 会在watch监听editRelationFormVisible函数中被清空
+          }
+        }
+      });
       this.myChart.off('contextmenu')
       this.myChart.on('contextmenu', (params) => {
         params.event.event.preventDefault() // 阻止默认的右键菜单
@@ -625,6 +701,30 @@ export default {
     '$store.state.graphRenderData'() {
       // 监听Vuex知识图谱数据的变化
       this.renderGraph()
+    },
+    editRelationFormVisible(newVal, oldVal) {
+      if (newVal === false) {
+        // unselect the two nodes
+        setTimeout(() => {
+          this.myChart.dispatchAction({
+            type: 'unselect',
+            dataIndex: this.selectedNodes,
+          });
+          this.selectedNodes = [];
+          this.selectedNode1 = {
+            category: 0,
+            id: '',
+            name: '',
+            text: '',
+          };
+          this.selectedNode2 = {
+            category: 0,
+            id: '',
+            name: '',
+            text: '',
+          };
+        }, 200);
+      }
     },
   },
 }
