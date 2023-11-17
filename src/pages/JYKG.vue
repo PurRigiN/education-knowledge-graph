@@ -450,10 +450,10 @@ export default {
       // this.myChart.hideLoading()
       // this.myChart.setOption(option)
       that.isGraphShow = true
-      // 监听点击事件
-      this.myChart.off('click') //取消之前的监听事件
-      this.myChart.on('click', (params) => {
-        this.graphClick(params, data)
+      // 监听双击事件
+      this.myChart.off('dblclick') //取消之前的监听事件
+      this.myChart.on('dblclick', (params) => {
+        this.graphDoubleClick(params, data)
       })
       this.myChart.off('contextmenu')
       this.myChart.on('contextmenu', (params) => {
@@ -466,7 +466,7 @@ export default {
         that.openDialog(params)
       })
     },
-    graphClick(params, data) {
+    graphDoubleClick(params, data) {
       // console.log(data)
       // let click_set = new Set() // 用于记录点击过的结点
       // console.log(params)
@@ -484,6 +484,8 @@ export default {
         (res) => {
           // console.log(res.data)
           if (this.click_set.has(params.data.id)) {
+            this.click_set.delete(params.data.id)
+            return
             //如果点击过该结点 则删除与该结点相关并且与其他结点无关的边和结点
             res.data.nodes.forEach((node) => {
               //删除与该结点相关的边
@@ -523,8 +525,8 @@ export default {
               ],
             })
             // 完成删除后，将该结点从click_set中删除
-            this.click_set.delete(params.data.id)
-            return
+            // this.click_set.delete(params.data.id)
+            // return
           } else {
             // 如果没有点击过该结点 则将与该结点相关的结点和边添加到data中
             res.data.nodes.forEach((node) => {
